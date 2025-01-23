@@ -43,7 +43,13 @@
 */
 uint64_t Tools::buildLong(uint8_t bytes[LONGSIZE])
 {
-  return 0;
+  uint64_t r = 0;
+
+  for (int i = 0; i < 8; i++){
+    r |= ((uint64_t)bytes[i] << (i * 8));
+  }
+  return r;
+
 }
 
 /** 
@@ -67,8 +73,11 @@ uint64_t Tools::buildLong(uint8_t bytes[LONGSIZE])
 */
 uint64_t Tools::getByte(uint64_t source, int32_t byteNum)
 {
-  return 0;
-}
+if (byteNum < 0 || byteNum > 7) {
+        return 0;
+    }
+
+    return (source >> (byteNum * 8)) & 0xFF;}
 
 /**
  * accepts as input an uint64_t and returns the bits low through 
@@ -93,11 +102,23 @@ uint64_t Tools::getByte(uint64_t source, int32_t byteNum)
  *
  * RULES:
  * 1) you can use an if to handle error checking on input
- * 2) no loops or conditionals (other than for 1) or switch
+ * 2) no loops or conzditionals (other than for 1) or switch
  */
 uint64_t Tools::getBits(uint64_t source, int32_t low, int32_t high)
 {
-  return 0;
+ if (low < 0 || high > 63 || low > high) {
+        return 0;
+    }
+    
+    uint64_t mask;
+    if (high - low + 1 == 64) {
+        mask = ~0ULL; 
+    } else {
+        mask = ((1ULL << (high - low + 1)) - 1) << low;
+    }
+
+    // Apply the mask to the source and shift the result to align the low bit to 0
+    return (source & mask) >> low;
 }
 
 
@@ -124,8 +145,16 @@ uint64_t Tools::getBits(uint64_t source, int32_t low, int32_t high)
  * 3) you can use other functions you have written, for example, getBits
  */
 uint64_t Tools::setBits(uint64_t source, int32_t low, int32_t high)
-{
-  return 0;
+{ 
+
+  if (low < 0 || high > 63 || low > high) return source;
+ uint64_t mask;
+    if (high - low + 1 == 64) {
+        mask = ~0ULL;
+    } else {
+        mask = ((1ULL << (high - low + 1)) - 1) << low;
+    }
+    return source | mask;
 }
 
 /**
@@ -150,7 +179,14 @@ uint64_t Tools::setBits(uint64_t source, int32_t low, int32_t high)
  */
 uint64_t Tools::clearBits(uint64_t source, int32_t low, int32_t high)
 {
-  return 0;
+
+  uint64_t diff = (high - low + 1);
+
+  if (low < 0 || high > 63 || low > high) return source;
+
+  uint64_t mask = ((1 << diff) - 1);
+  mask = ~(mask << low);
+  return source & mask;
 }
 
 
@@ -181,7 +217,15 @@ uint64_t Tools::clearBits(uint64_t source, int32_t low, int32_t high)
 uint64_t Tools::copyBits(uint64_t source, uint64_t dest, 
                          int32_t srclow, int32_t dstlow, int32_t length)
 {
-   return 0; 
+   if(srclow < 0 || dstlow < 0 || srclow + length > 64 
+      || dstlow + length > 64|| length < 0) 
+      return dest; 
+
+    uint64_t mask = (1 << length) - 1;
+    uint64_t srcBit = (source >> srclow) & mask;
+    dest&= ~(mask << dstlow);
+    return (dest | (srcBit << dstlow));
+
 }
 
 
@@ -206,7 +250,9 @@ uint64_t Tools::copyBits(uint64_t source, uint64_t dest,
  */
 uint64_t Tools::setByte(uint64_t source, int32_t byteNum)
 {
-  return 0;
+  if(byteNum < 0 || byteNum > 7) return source;
+
+  return source | (0xff << (byteNum * 8)) ; 
 }
 
 
@@ -228,7 +274,7 @@ uint64_t Tools::setByte(uint64_t source, int32_t byteNum)
  */
 uint64_t Tools::sign(uint64_t source)
 {
-  return 0;
+  return (source >> 63) & 1;
 }
 
 /**
@@ -258,7 +304,9 @@ bool Tools::addOverflow(uint64_t op1, uint64_t op2)
   //      Thus, the way to check for an overflow is to compare the signs of the
   //      operand and the result.  For example, if you add two positive numbers, 
   //      the result should be positive, otherwise an overflow occurred.
-  return false;
+  uint64_t r = op1 + op2;
+
+  return ((op1 >> 63) == (op2 >> 63)) && ((op1 >> 63) != (r >> 63));
 }
 
 /**
@@ -287,5 +335,6 @@ bool Tools::subOverflow(uint64_t op1, uint64_t op2)
   //Note: you can not simply use addOverflow in this function.  If you negate
   //op1 in order to an add, you may get an overflow. 
   //NOTE: the subtraction is op2 - op1 (not op1 - op2).
-  return false;
-}
+ uint64_t r = op2 - op1;
+
+  return ((op1 >> 63) != (op2 >> 63)) && ((op2 >> 63) != (r >> 63));}
